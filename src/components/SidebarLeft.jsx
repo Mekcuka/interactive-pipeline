@@ -21,6 +21,7 @@ function SidebarLeft({
   setMode,
   addType,
   addClick,
+  setAddClick,
   selectAddType,
   cancelPlacement,
   selObjId,

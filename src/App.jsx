@@ -47,7 +47,7 @@ function App() {
   useEffect(() => {
     try {
       localStorage.setItem('pipeline-projects', JSON.stringify(projects))
-    } catch {}
+  } catch {}
   }, [projects])
 
   const createProject = useCallback(() => {
@@ -81,21 +81,6 @@ function App() {
     }))
   }, [currentProjectId, objects, connections, objIdSeq, pipeIdSeq])
 
-  const loadProject = useCallback((projectId) => {
-    const project = projects.find(p => p.id === projectId)
-    if (!project) return
-    pushHistory()
-    setObjects(project.objects || [])
-    setConnections(project.connections || [])
-    setObjIdSeq(project.objIdSeq || 0)
-    setPipeIdSeq(project.pipeIdSeq || 0)
-    setCurrentProjectId(projectId)
-    setSelObjId(null)
-    setSelPipeId(null)
-    setMode('view')
-    cancelPlacement()
-  }, [projects, pushHistory, cancelPlacement])
-
   const deleteProject = useCallback((projectId) => {
     if (!confirm('Удалить проект?')) return
     setProjects(prev => prev.filter(p => p.id !== projectId))
@@ -103,19 +88,6 @@ function App() {
       setCurrentProjectId(null)
     }
   }, [currentProjectId])
-
-  const newProjectEmpty = useCallback(() => {
-    pushHistory()
-    setObjects([])
-    setConnections([])
-    setObjIdSeq(0)
-    setPipeIdSeq(0)
-    setCurrentProjectId(null)
-    setSelObjId(null)
-    setSelPipeId(null)
-    setMode('view')
-    cancelPlacement()
-  }, [pushHistory, cancelPlacement])
 
   // ── Режим удаления ──
   const [deleteMode, setDeleteMode] = useState(false)
@@ -223,6 +195,35 @@ function App() {
     setPipeWaypoints([])
   }, [])
 
+  // ── Проекты: load/new после pushHistory ──
+  const loadProject = useCallback((projectId) => {
+    const project = projects.find(p => p.id === projectId)
+    if (!project) return
+    pushHistory()
+    setObjects(project.objects || [])
+    setConnections(project.connections || [])
+    setObjIdSeq(project.objIdSeq || 0)
+    setPipeIdSeq(project.pipeIdSeq || 0)
+    setCurrentProjectId(projectId)
+    setSelObjId(null)
+    setSelPipeId(null)
+    setMode('view')
+    cancelPlacement()
+  }, [projects, pushHistory, cancelPlacement])
+
+  const newProjectEmpty = useCallback(() => {
+    pushHistory()
+    setObjects([])
+    setConnections([])
+    setObjIdSeq(0)
+    setPipeIdSeq(0)
+    setCurrentProjectId(null)
+    setSelObjId(null)
+    setSelPipeId(null)
+    setMode('view')
+    cancelPlacement()
+  }, [pushHistory, cancelPlacement])
+
   const addObject = useCallback((lat, lng, type) => {
     const newId = stateRef.current.objIdSeq + 1
     setObjIdSeq(newId)
@@ -236,6 +237,13 @@ function App() {
     pushHistory()
     setObjects(prev => [...prev, obj])
     return obj
+  }, [pushHistory])
+
+  const handleObjectDeleteClick = useCallback((o) => {
+    pushHistory()
+    setObjects(prev => prev.filter(obj => obj.id !== o.id))
+    setConnections(prev => prev.filter(c => c.from !== o.id && c.to !== o.id))
+    setSelObjId(prev => prev === o.id ? null : prev)
   }, [pushHistory])
 
   const handlePipeClick = useCallback((o) => {
@@ -360,13 +368,6 @@ function App() {
       }))
     }
   }, [])
-
-  const handleObjectDeleteClick = useCallback((o) => {
-    pushHistory()
-    setObjects(prev => prev.filter(obj => obj.id !== o.id))
-    setConnections(prev => prev.filter(c => c.from !== o.id && c.to !== o.id))
-    setSelObjId(prev => prev === o.id ? null : prev)
-  }, [pushHistory])
 
   const moveObject = useCallback((id, lat, lng) => {
     setObjects(prev => prev.map(o => {
@@ -495,6 +496,7 @@ function App() {
         setMode={setMode}
         addType={addType}
         addClick={addClick}
+        setAddClick={setAddClick}
         selectAddType={selectAddType}
         cancelPlacement={cancelPlacement}
         selObjId={selObjId}
