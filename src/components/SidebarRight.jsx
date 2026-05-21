@@ -63,13 +63,13 @@ function SidebarRight({
   }
 
   return (
-    <div className="sidebar-right">
-      <div className="sidebar-header">
-        <h1>📋 Объекты и трубы</h1>
+    <div className="sidebar-right" style={{ width: '180px' }}>
+      <div className="sidebar-header" style={{ padding: '0.5rem 0.7rem' }}>
+        <h1 style={{ fontSize: '0.75rem' }}>📋 Объекты и трубы</h1>
       </div>
-      <div className="sidebar-body" style={{ padding: '0.6rem' }}>
-        <div className="card" style={{ marginBottom: '0.6rem' }}>
-          <div className="card-header">
+      <div className="sidebar-body" style={{ padding: '0.4rem', gap: '0.35rem' }}>
+        <div className="card" style={{ marginBottom: '0.35rem' }}>
+          <div className="card-header" style={{ padding: '0.3rem 0.5rem', fontSize: '0.6rem' }}>
             📦 Объекты{' '}
             <span style={{ float: 'right', color: '#94a3b8', fontWeight: 400 }}>
               {objects.length}
@@ -77,17 +77,18 @@ function SidebarRight({
           </div>
           <div
             className="card-body"
-            style={{ padding: '0.4rem', maxHeight: '200px', overflowY: 'auto' }}
+            style={{ padding: '0.25rem', maxHeight: '140px', overflowY: 'auto' }}
           >
-            <div className="list" id="listObj">
+            <div className="list" id="listObj" style={{ gap: '0.15rem' }}>
               {objects.length === 0 ? (
-                <div className="list-empty">Нет объектов</div>
+                <div className="list-empty" style={{ fontSize: '0.6rem', padding: '0.4rem' }}>Нет объектов</div>
               ) : (
                 objects.map((o) => (
                     <div
                       key={o.id}
                       className={`list-item ${selObjId === o.id ? 'active' : ''}`}
                       onClick={() => setSelObjId(o.id)}
+                      style={{ padding: '0.25rem 0.4rem', fontSize: '0.62rem' }}
                     >
                       <span>
                         {TYPE_ICONS[o.type] || '📍'} {o.name}
@@ -100,6 +101,7 @@ function SidebarRight({
                             openEditObject(o)
                           }}
                           title="Редактировать"
+                          style={{ fontSize: '0.65rem' }}
                         >
                           ✏️
                         </button>
@@ -109,6 +111,7 @@ function SidebarRight({
                             deleteObject(o.id)
                           }}
                           title="Удалить"
+                          style={{ fontSize: '0.65rem' }}
                         >
                           🗑️
                         </button>
@@ -121,7 +124,7 @@ function SidebarRight({
         </div>
 
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ padding: '0.3rem 0.5rem', fontSize: '0.6rem' }}>
             🔧 Трубопроводы{' '}
             <span style={{ float: 'right', color: '#94a3b8', fontWeight: 400 }}>
               {connections.length}
@@ -129,11 +132,11 @@ function SidebarRight({
           </div>
           <div
             className="card-body"
-            style={{ padding: '0.4rem', maxHeight: '200px', overflowY: 'auto' }}
+            style={{ padding: '0.25rem', maxHeight: '140px', overflowY: 'auto' }}
           >
-            <div className="list" id="listPipe">
+            <div className="list" id="listPipe" style={{ gap: '0.15rem' }}>
               {connections.length === 0 ? (
-                <div className="list-empty">Нет трубопроводов</div>
+                <div className="list-empty" style={{ fontSize: '0.6rem', padding: '0.4rem' }}>Нет трубопроводов</div>
               ) : (
                 connections.map((c) => {
                   const d = getPipeLength(c)
@@ -142,6 +145,7 @@ function SidebarRight({
                       key={c.id}
                       className={`list-item ${selPipeId === c.id ? 'active' : ''}`}
                       onClick={() => setSelPipeId(c.id)}
+                      style={{ padding: '0.25rem 0.4rem', fontSize: '0.62rem' }}
                     >
                       <span>
                         {c.name} — {fmt(d)}
@@ -153,6 +157,7 @@ function SidebarRight({
                             openEditPipe(c)
                           }}
                           title="Редактировать"
+                          style={{ fontSize: '0.65rem' }}
                         >
                           ✏️
                         </button>
@@ -162,6 +167,7 @@ function SidebarRight({
                             deletePipe(c.id)
                           }}
                           title="Удалить"
+                          style={{ fontSize: '0.65rem' }}
                         >
                           🗑️
                         </button>

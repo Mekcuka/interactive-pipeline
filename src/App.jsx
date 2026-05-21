@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import './App.css'
 import SidebarLeft from './components/SidebarLeft'
 import SidebarRight from './components/SidebarRight'
 import MapView from './components/MapView'
 import Modal, { ObjectModal } from './components/Modal'
+import ProjectsPage from './components/ProjectsPage'
 
 const TYPE_NAMES = {
   wellpad: 'Куст скважин',
@@ -490,97 +492,115 @@ function App() {
   }, [editObjectData, updateObject])
 
   return (
-    <div className="app">
-      <SidebarLeft
-        mode={mode}
-        setMode={setMode}
-        addType={addType}
-        addClick={addClick}
-        setAddClick={setAddClick}
-        selectAddType={selectAddType}
-        cancelPlacement={cancelPlacement}
-        selObjId={selObjId}
-        setSelObjId={setSelObjId}
-        objects={objects}
-        updateObject={updateObject}
-        showLayers={showLayers}
-        toggleLayer={toggleLayer}
-        clearAll={clearAll}
-        undo={undo}
-        redo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        deleteMode={deleteMode}
-        setDeleteMode={setDeleteMode}
-        projects={projects}
-        currentProjectId={currentProjectId}
-        projectName={projectName}
-        setProjectName={setProjectName}
-        createProject={createProject}
-        saveProject={saveProject}
-        loadProject={loadProject}
-        deleteProject={deleteProject}
-        newProjectEmpty={newProjectEmpty}
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <div className="app">
+            <SidebarLeft
+              mode={mode}
+              setMode={setMode}
+              addType={addType}
+              addClick={addClick}
+              setAddClick={setAddClick}
+              selectAddType={selectAddType}
+              cancelPlacement={cancelPlacement}
+              selObjId={selObjId}
+              setSelObjId={setSelObjId}
+              objects={objects}
+              updateObject={updateObject}
+              showLayers={showLayers}
+              toggleLayer={toggleLayer}
+              clearAll={clearAll}
+              undo={undo}
+              redo={redo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              deleteMode={deleteMode}
+              setDeleteMode={setDeleteMode}
+              currentProjectId={currentProjectId}
+              projectName={projectName}
+              setProjectName={setProjectName}
+              saveProject={saveProject}
+            />
+            <MapView
+              objects={objects}
+              connections={connections}
+              selObjId={selObjId}
+              setSelObjId={setSelObjId}
+              mode={mode}
+              addType={addType}
+              addClick={addClick}
+              pipeFrom={pipeFrom}
+              pipeWaypoints={pipeWaypoints}
+              showLayers={showLayers}
+              deleteMode={deleteMode}
+              onMapClick={handleMapClick}
+              onMapDblClick={handleMapDblClick}
+              onObjectClick={handlePipeClick}
+              onPipeLineClick={handlePipeLineClick}
+              onMoveObject={moveObject}
+              onMoveObjectCommit={commitMoveObject}
+              moveWaypoint={moveWaypoint}
+              moveWaypointCommit={commitMoveWaypoint}
+              removeWaypoint={removeWaypoint}
+            />
+            <SidebarRight
+              objects={objects}
+              connections={connections}
+              selObjId={selObjId}
+              selPipeId={selPipeId}
+              setSelObjId={setSelObjId}
+              setSelPipeId={setSelPipeId}
+              mode={mode}
+              deleteObject={deleteObject}
+              deletePipe={deletePipe}
+              openEditPipe={openEditPipe}
+              openEditObject={openEditObject}
+            />
+            <Modal
+              isOpen={modalPipeOpen}
+              onClose={() => setModalPipeOpen(false)}
+              onSubmit={confirmPipe}
+              pipeFrom={pipeFrom}
+              pipeTo={pipeTo}
+              pipeIdSeq={pipeIdSeq}
+            />
+            <Modal
+              isOpen={modalEditPipeOpen}
+              onClose={() => { setModalEditPipeOpen(false); setEditPipeData(null) }}
+              onSubmit={savePipeEdit}
+              editData={editPipeData}
+              setEditData={setEditPipeData}
+              onResetGeom={() => editPipeData && resetPipeGeom(editPipeData.id)}
+              isEdit
+            />
+            <ObjectModal
+              isOpen={modalEditObjectOpen}
+              onClose={() => { setModalEditObjectOpen(false); setEditObjectData(null) }}
+              onSubmit={saveObjectEdit}
+              object={editObjectData}
+            />
+          </div>
+        }
       />
-      <MapView
-        objects={objects}
-        connections={connections}
-        selObjId={selObjId}
-        setSelObjId={setSelObjId}
-        mode={mode}
-        addType={addType}
-        addClick={addClick}
-        pipeFrom={pipeFrom}
-        pipeWaypoints={pipeWaypoints}
-        showLayers={showLayers}
-        deleteMode={deleteMode}
-        onMapClick={handleMapClick}
-        onMapDblClick={handleMapDblClick}
-        onObjectClick={handlePipeClick}
-        onPipeLineClick={handlePipeLineClick}
-        onMoveObject={moveObject}
-        onMoveObjectCommit={commitMoveObject}
-        moveWaypoint={moveWaypoint}
-        moveWaypointCommit={commitMoveWaypoint}
-        removeWaypoint={removeWaypoint}
+      <Route
+        path="/projects"
+        element={
+          <ProjectsPage
+            projects={projects}
+            currentProjectId={currentProjectId}
+            projectName={projectName}
+            setProjectName={setProjectName}
+            createProject={createProject}
+            saveProject={saveProject}
+            loadProject={loadProject}
+            deleteProject={deleteProject}
+            newProjectEmpty={newProjectEmpty}
+          />
+        }
       />
-      <SidebarRight
-        objects={objects}
-        connections={connections}
-        selObjId={selObjId}
-        selPipeId={selPipeId}
-        setSelObjId={setSelObjId}
-        setSelPipeId={setSelPipeId}
-        mode={mode}
-        deleteObject={deleteObject}
-        deletePipe={deletePipe}
-        openEditPipe={openEditPipe}
-        openEditObject={openEditObject}
-      />
-      <Modal
-        isOpen={modalPipeOpen}
-        onClose={() => setModalPipeOpen(false)}
-        onSubmit={confirmPipe}
-        pipeFrom={pipeFrom}
-        pipeTo={pipeTo}
-        pipeIdSeq={pipeIdSeq}
-      />
-      <Modal
-        isOpen={modalEditPipeOpen}
-        onClose={() => { setModalEditPipeOpen(false); setEditPipeData(null) }}
-        onSubmit={savePipeEdit}
-        editData={editPipeData}
-        setEditData={setEditPipeData}
-        onResetGeom={() => editPipeData && resetPipeGeom(editPipeData.id)}
-        isEdit
-      />
-      <ObjectModal
-        isOpen={modalEditObjectOpen}
-        onClose={() => { setModalEditObjectOpen(false); setEditObjectData(null) }}
-        onSubmit={saveObjectEdit}
-        object={editObjectData}
-      />
-    </div>
+    </Routes>
   )
 }
 
