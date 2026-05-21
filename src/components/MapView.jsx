@@ -26,9 +26,12 @@ function buildPopup(o) {
   return html
 }
 
-function makeIcon(iconChar, selected) {
+function makeIcon(iconChar, selected, deleteMode) {
+  const html = deleteMode
+    ? `<div class="custom-marker delete-mode">${iconChar}</div>`
+    : `<div class="custom-marker">${iconChar}</div>`
   return L.divIcon({
-    html: `<div class="custom-marker">${iconChar}</div>`,
+    html,
     className: selected ? 'marker-selected' : '',
     iconSize: [32, 32],
     iconAnchor: [16, 16]
@@ -44,7 +47,7 @@ function makePreviewIcon(iconChar) {
   })
 }
 
-function DraggableMarker({ object, selected, mode, addClick, addType, callbacksRef }) {
+function DraggableMarker({ object, selected, mode, addClick, addType, deleteMode, callbacksRef }) {
   const map = useMap()
   const [position, setPosition] = useState(object.center)
   const isDragging = useRef(false)
@@ -61,7 +64,7 @@ function DraggableMarker({ object, selected, mode, addClick, addType, callbacksR
     setPosition(object.center)
   }
 
-  const icon = useMemo(() => makeIcon(TYPE_ICONS[object.type] || '📍', selected), [object.type, selected])
+  const icon = useMemo(() => makeIcon(TYPE_ICONS[object.type] || '📍', selected, deleteMode), [object.type, selected, deleteMode])
 
   const eventHandlers = useMemo(() => ({
     click: (e) => {
@@ -202,6 +205,7 @@ function MapView({
   pipeFrom,
   pipeWaypoints,
   showLayers,
+  deleteMode,
   onMapClick,
   onMapDblClick,
   onObjectClick,
@@ -259,10 +263,11 @@ function MapView({
         mode={mode}
         addClick={addClick}
         addType={addType}
+        deleteMode={deleteMode}
         callbacksRef={callbacksRef}
       />
     ))
-  }, [objects, selObjId, mode, addClick, addType])
+  }, [objects, selObjId, mode, addClick, addType, deleteMode])
 
   const pipes = useMemo(() => {
     return connections.map((c) => (
@@ -346,8 +351,10 @@ function MapView({
         )}
       </MapContainer>
 
-      <div className={`fab-mode ${addClick ? 'place' : mode}`}>
-        {addClick
+      <div className={`fab-mode ${deleteMode ? 'delete' : addClick ? 'place' : mode}`}>
+        {deleteMode
+          ? '🗑️ Удаление объектов'
+          : addClick
           ? `📍 Размещение: ${TYPE_NAMES[addType] || addType}`
           : mode === 'view'
           ? '👁️ Просмотр'

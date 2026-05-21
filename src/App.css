@@ -189,6 +189,30 @@
   padding: 0.4rem;
 }
 
+.project-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.project-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.project-item.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
 .form-group {
   margin-bottom: 0.5rem;
 }
@@ -430,6 +454,10 @@
   color: #d97706;
 }
 
+.fab-mode.delete {
+  color: #ef4444;
+}
+
 .toast {
   position: absolute;
   bottom: 16px;
@@ -532,6 +560,11 @@
   transition: transform 0.15s;
 }
 
+.custom-marker.delete-mode {
+  filter: drop-shadow(0 0 8px #ef4444) grayscale(0.3);
+  transform: scale(0.9);
+}
+
 .custom-marker:hover {
   transform: scale(1.15);
 }
@@ -539,6 +572,11 @@
 .marker-selected .custom-marker {
   transform: scale(1.25);
   filter: drop-shadow(0 0 6px #10b981);
+}
+
+.marker-selected .custom-marker.delete-mode {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 10px #ef4444);
 }
 
 .preview-marker {

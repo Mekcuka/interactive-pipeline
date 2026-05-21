@@ -33,7 +33,18 @@ function SidebarLeft({
   undo,
   redo,
   canUndo,
-  canRedo
+  canRedo,
+  deleteMode,
+  setDeleteMode,
+  projects,
+  currentProjectId,
+  projectName,
+  setProjectName,
+  createProject,
+  saveProject,
+  loadProject,
+  deleteProject,
+  newProjectEmpty
 }) {
   const selectedObject = objects.find(o => o.id === selObjId)
 
@@ -106,6 +117,69 @@ function SidebarLeft({
           <button className="btn btn-ghost" onClick={redo} disabled={!canRedo} title="Повторить (Ctrl+Y)">
             ↪️ Повторить
           </button>
+        </div>
+
+        <div className="card">
+          <div className="card-header">📁 Проекты</div>
+          <div className="card-body">
+            <div className="form-group">
+              <input
+                type="text"
+                placeholder="Название проекта..."
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                style={{ marginBottom: '0.3rem' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem' }}>
+              <button className="btn btn-success" style={{ flex: 1, fontSize: '0.72rem' }} onClick={createProject}>
+                💾 Создать
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1, fontSize: '0.72rem' }} onClick={saveProject} disabled={!currentProjectId}>
+                📝 Сохранить
+              </button>
+            </div>
+            {projects.length > 0 && (
+              <div className="project-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                {projects.map(p => (
+                  <div
+                    key={p.id}
+                    className={`project-item ${currentProjectId === p.id ? 'active' : ''}`}
+                    onClick={() => loadProject(p.id)}
+                  >
+                    <span>{p.name}</span>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      style={{ width: 'auto', padding: '0.15rem 0.4rem' }}
+                      onClick={(e) => { e.stopPropagation(); deleteProject(p.id) }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="btn btn-ghost" style={{ fontSize: '0.72rem' }} onClick={newProjectEmpty}>
+              ➕ Новый пустой проект
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">🛠️ Инструменты</div>
+          <div className="card-body">
+            <button
+              className={`btn ${deleteMode ? 'btn-danger' : 'btn-secondary'}`}
+              onClick={() => { setDeleteMode(!deleteMode); if (!deleteMode) { setAddClick(false); setMode('view'); } }}
+            >
+              {deleteMode ? '🗑️ Режим удаления (ON)' : '🗑️ Режим удаления'}
+            </button>
+            {deleteMode && (
+              <div className="hint" style={{ borderLeftColor: '#ef4444', marginTop: '0.3rem' }}>
+                👆 Кликните на объект для удаления
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="card" id="cardAdd">
