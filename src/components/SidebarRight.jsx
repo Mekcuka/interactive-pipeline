@@ -1,10 +1,4 @@
-const TYPE_ICONS = {
-  wellpad: '🛢️',
-  upsv: '⚙️',
-  kns: '💧',
-  cps: '🏭',
-  node: '🔵'
-}
+import { WELLPAD_SVG_SMALL, TYPE_EMOJI } from './Icons'
 
 const TYPE_PARAMS = {
   wellpad: { key: 'prodRate', unit: 'т.н/год' },
@@ -91,7 +85,7 @@ function SidebarRight({
                       style={{ padding: '0.25rem 0.4rem', fontSize: '0.62rem' }}
                     >
                       <span>
-                        {TYPE_ICONS[o.type] || '📍'} {o.name}
+                        {o.type === 'wellpad' ? <span dangerouslySetInnerHTML={{ __html: WELLPAD_SVG_SMALL }} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.15rem', color: '#1e293b' }} /> : (TYPE_EMOJI[o.type] || '📍')} {o.name}
                         {getObjectExtra(o)}
                       </span>
                       <div className="actions">

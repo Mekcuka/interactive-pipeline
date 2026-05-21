@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { WELLPAD_SVG_SMALL, TYPE_EMOJI } from './Icons'
 
 const TYPE_NAMES = {
   wellpad: 'Куст скважин',
@@ -10,11 +11,11 @@ const TYPE_NAMES = {
 }
 
 const TYPE_ICONS = {
-  wellpad: '🛢️',
-  upsv: '⚙️',
-  kns: '💧',
-  cps: '🏭',
-  node: '🔵',
+  wellpad: null, // SVG
+  upsv: TYPE_EMOJI.upsv,
+  kns: TYPE_EMOJI.kns,
+  cps: TYPE_EMOJI.cps,
+  node: TYPE_EMOJI.node,
   pipe: '🔧'
 }
 
@@ -171,7 +172,11 @@ function SidebarLeft({
                   className={`type-item ${addType === type ? 'active' : ''}`}
                   onClick={() => selectAddType(type)}
                 >
-                  <span className="icon">{TYPE_ICONS[type]}</span>
+                  <span className="icon">
+                    {type === 'wellpad'
+                      ? <span dangerouslySetInnerHTML={{ __html: WELLPAD_SVG_SMALL }} style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }} />
+                      : TYPE_ICONS[type]}
+                  </span>
                   <span>{name}</span>
                 </div>
               ))}

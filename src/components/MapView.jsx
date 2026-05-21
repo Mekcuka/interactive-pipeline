@@ -1,14 +1,7 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, Popup, Tooltip, useMapEvents, useMap, CircleMarker } from 'react-leaflet'
 import L from 'leaflet'
-
-const TYPE_ICONS = {
-  wellpad: '🛢️',
-  upsv: '⚙️',
-  kns: '💧',
-  cps: '🏭',
-  node: '🔵'
-}
+import { getTypeIconHtml } from './Icons'
 
 const TYPE_PARAMS = {
   wellpad: { key: 'prodRate', label: 'Уровень добычи', unit: 'т.н/год' },
@@ -26,10 +19,11 @@ function buildPopup(o) {
   return html
 }
 
-function makeIcon(iconChar, selected, deleteMode) {
+function makeIcon(type, selected, deleteMode) {
+  const iconHtml = getTypeIconHtml(type)
   const html = deleteMode
-    ? `<div class="custom-marker delete-mode">${iconChar}</div>`
-    : `<div class="custom-marker">${iconChar}</div>`
+    ? `<div class="custom-marker delete-mode">${iconHtml}</div>`
+    : `<div class="custom-marker">${iconHtml}</div>`
   return L.divIcon({
     html,
     className: selected ? 'marker-selected' : '',
@@ -38,9 +32,10 @@ function makeIcon(iconChar, selected, deleteMode) {
   })
 }
 
-function makePreviewIcon(iconChar) {
+function makePreviewIcon(type) {
+  const iconHtml = getTypeIconHtml(type)
   return L.divIcon({
-    html: `<div class="preview-marker">${iconChar}</div>`,
+    html: `<div class="preview-marker">${iconHtml}</div>`,
     className: '',
     iconSize: [36, 36],
     iconAnchor: [18, 18]
@@ -64,7 +59,7 @@ function DraggableMarker({ object, selected, mode, addClick, addType, deleteMode
     setPosition(object.center)
   }
 
-  const icon = useMemo(() => makeIcon(TYPE_ICONS[object.type] || '📍', selected, deleteMode), [object.type, selected, deleteMode])
+  const icon = useMemo(() => makeIcon(object.type, selected, deleteMode), [object.type, selected, deleteMode])
 
   const eventHandlers = useMemo(() => ({
     click: (e) => {
@@ -108,12 +103,13 @@ function DraggableMarker({ object, selected, mode, addClick, addType, deleteMode
   )
 }
 
-const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRef }) {
+const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRef, highlightedPathIds }) {
   const from = objects.find(o => o.id === connection.from)
   const to = objects.find(o => o.id === connection.to)
   if (!from || !to) return null
 
   const pts = connection.pts && connection.pts.length > 1 ? connection.pts : [from.center, to.center]
+  const isHighlighted = highlightedPathIds.has(connection.id)
 
   const eventHandlers = useMemo(() => ({
     click: (e) => {
@@ -126,7 +122,11 @@ const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRe
     <Polyline
       key={connection.id}
       positions={pts}
-      pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.85 }}
+      pathOptions={{
+        color: isHighlighted ? '#059669' : '#3b82f6',
+        weight: isHighlighted ? 6 : 4,
+        opacity: isHighlighted ? 1 : 0.85
+      }}
       eventHandlers={eventHandlers}
     >
       <Tooltip
@@ -214,7 +214,8 @@ function MapView({
   onMoveObjectCommit,
   moveWaypoint,
   moveWaypointCommit,
-  removeWaypoint
+  removeWaypoint,
+  highlightedPathIds = new Set()
 }) {
   const [mousePos, setMousePos] = useState(null)
   const rafRef = useRef(null)
@@ -276,9 +277,10 @@ function MapView({
         connection={c}
         objects={objects}
         callbacksRef={callbacksRef}
+        highlightedPathIds={highlightedPathIds}
       />
     ))
-  }, [connections, objects])
+  }, [connections, objects, highlightedPathIds])
 
   const waypoints = useMemo(() => {
     if (mode !== 'edit') return null
@@ -323,7 +325,7 @@ function MapView({
         {addClick && addType !== 'pipe' && mousePos && !pipeFrom && (
           <Marker
             position={mousePos}
-            icon={makePreviewIcon(TYPE_ICONS[addType] || '📍')}
+            icon={makePreviewIcon(addType)}
             interactive={false}
             zIndexOffset={9999}
           />

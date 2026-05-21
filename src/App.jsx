@@ -6,6 +6,8 @@ import SidebarRight from './components/SidebarRight'
 import MapView from './components/MapView'
 import Modal, { ObjectModal } from './components/Modal'
 import ProjectsPage from './components/ProjectsPage'
+import CalcMenu from './components/CalcMenu'
+import GraphCalcModal from './components/GraphCalcModal'
 
 const TYPE_NAMES = {
   wellpad: 'Куст скважин',
@@ -34,6 +36,11 @@ function App() {
   const [modalEditObjectOpen, setModalEditObjectOpen] = useState(false)
   const [editPipeData, setEditPipeData] = useState(null)
   const [editObjectData, setEditObjectData] = useState(null)
+
+  // ── Расчёты ──
+  const [graphCalcOpen, setGraphCalcOpen] = useState(false)
+  const [graphResult, setGraphResult] = useState(null)
+  const [highlightedPathIds, setHighlightedPathIds] = useState(new Set())
 
   // ── Проекты (localStorage) ──
   const [projects, setProjects] = useState(() => {
@@ -491,6 +498,23 @@ function App() {
     }
   }, [editObjectData, updateObject])
 
+  const handleRunGraphCalc = useCallback((result) => {
+    if (result && result.paths && result.paths.length > 0) {
+      // Собираем все connection IDs из путей
+      const ids = new Set()
+      for (const path of result.paths) {
+        for (const conn of path.edges) {
+          ids.add(conn.id)
+        }
+      }
+      setHighlightedPathIds(ids)
+      setGraphResult(result)
+    } else {
+      setHighlightedPathIds(new Set())
+      setGraphResult(null)
+    }
+  }, [])
+
   return (
     <Routes>
       <Route
@@ -544,6 +568,7 @@ function App() {
               moveWaypoint={moveWaypoint}
               moveWaypointCommit={commitMoveWaypoint}
               removeWaypoint={removeWaypoint}
+              highlightedPathIds={highlightedPathIds}
             />
             <SidebarRight
               objects={objects}
@@ -580,6 +605,17 @@ function App() {
               onClose={() => { setModalEditObjectOpen(false); setEditObjectData(null) }}
               onSubmit={saveObjectEdit}
               object={editObjectData}
+            />
+            <CalcMenu
+              onOpenGraphCalc={() => setGraphCalcOpen(true)}
+              hasGraphResult={!!graphResult}
+            />
+            <GraphCalcModal
+              isOpen={graphCalcOpen}
+              onClose={() => setGraphCalcOpen(false)}
+              objects={objects}
+              connections={connections}
+              onRunCalc={handleRunGraphCalc}
             />
           </div>
         }
