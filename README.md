@@ -85,6 +85,10 @@ npm run dev
 
 Приложение доступно по адресу: **http://localhost:5173**
 
+## 🌐 Демо
+
+Развёрнутое приложение: **https://mekcuka.github.io/interactive-pipeline/**
+
 ### 3. Сборка для продакшена
 
 ```bash
