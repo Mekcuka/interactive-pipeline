@@ -178,6 +178,17 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.undo-redo-bar {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.undo-redo-bar .btn {
+  flex: 1;
+  font-size: 0.72rem;
+  padding: 0.4rem;
+}
+
 .form-group {
   margin-bottom: 0.5rem;
 }

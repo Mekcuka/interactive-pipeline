@@ -87,6 +87,7 @@ function DraggableMarker({ object, selected, mode, addClick, addType, callbacksR
       const latLng = e.target.getLatLng()
       setPosition([latLng.lat, latLng.lng])
       callbacksRef.current.onMoveObject(object.id, latLng.lat, latLng.lng)
+      callbacksRef.current.onMoveObjectCommit(object.id, latLng.lat, latLng.lng)
     }
   }), [addClick, addType, object.id, object.type, selected, map])
 
@@ -148,6 +149,7 @@ const WaypointMarker = React.memo(function WaypointMarker({ connection, wpIndex,
       if (map) map.dragging.enable()
       const ll = e.target.getLatLng()
       callbacksRef.current.moveWaypoint(connection.id, wpIndex, ll.lat, ll.lng)
+      callbacksRef.current.moveWaypointCommit(connection.id, wpIndex, ll.lat, ll.lng)
     },
     contextmenu: (e) => {
       e.originalEvent.stopPropagation()
@@ -205,7 +207,9 @@ function MapView({
   onObjectClick,
   onPipeLineClick,
   onMoveObject,
+  onMoveObjectCommit,
   moveWaypoint,
+  moveWaypointCommit,
   removeWaypoint
 }) {
   const [mousePos, setMousePos] = useState(null)
@@ -217,8 +221,10 @@ function MapView({
     onObjectClick,
     onPipeLineClick,
     onMoveObject,
+    onMoveObjectCommit,
     setSelObjId,
     moveWaypoint,
+    moveWaypointCommit,
     removeWaypoint,
     onMouseMove: null
   })
@@ -228,8 +234,10 @@ function MapView({
   callbacksRef.current.onObjectClick = onObjectClick
   callbacksRef.current.onPipeLineClick = onPipeLineClick
   callbacksRef.current.onMoveObject = onMoveObject
+  callbacksRef.current.onMoveObjectCommit = onMoveObjectCommit
   callbacksRef.current.setSelObjId = setSelObjId
   callbacksRef.current.moveWaypoint = moveWaypoint
+  callbacksRef.current.moveWaypointCommit = moveWaypointCommit
   callbacksRef.current.removeWaypoint = removeWaypoint
 
   const handleMouseMove = useCallback((e) => {

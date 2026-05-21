@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import './App.css'
 import SidebarLeft from './components/SidebarLeft'
 import SidebarRight from './components/SidebarRight'
@@ -40,6 +40,87 @@ function App() {
     mode, addType, addClick, pipeFrom, pipeTo, pipeWaypoints
   }
 
+  // ── Undo / Redo ──
+  const undoStack = useRef([])
+  const redoStack = useRef([])
+  const isUndoing = useRef(false)
+  const MAX_HISTORY = 50
+
+  const pushHistory = useCallback(() => {
+    if (isUndoing.current) return
+    const snapshot = {
+      objects: JSON.parse(JSON.stringify(objects)),
+      connections: JSON.parse(JSON.stringify(connections)),
+      objIdSeq,
+      pipeIdSeq
+    }
+    undoStack.current.push(snapshot)
+    if (undoStack.current.length > MAX_HISTORY) {
+      undoStack.current.shift()
+    }
+    redoStack.current = []
+  }, [objects, connections, objIdSeq, pipeIdSeq])
+
+  const canUndo = undoStack.current.length > 0
+  const canRedo = redoStack.current.length > 0
+
+  const undo = useCallback(() => {
+    if (undoStack.current.length === 0) return
+    isUndoing.current = true
+    const current = {
+      objects: JSON.parse(JSON.stringify(objects)),
+      connections: JSON.parse(JSON.stringify(connections)),
+      objIdSeq,
+      pipeIdSeq
+    }
+    redoStack.current.push(current)
+    const snapshot = undoStack.current.pop()
+    setObjects(snapshot.objects)
+    setConnections(snapshot.connections)
+    setObjIdSeq(snapshot.objIdSeq)
+    setPipeIdSeq(snapshot.pipeIdSeq)
+    setSelObjId(null)
+    setSelPipeId(null)
+    setTimeout(() => { isUndoing.current = false }, 0)
+  }, [objects, connections, objIdSeq, pipeIdSeq])
+
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return
+    isUndoing.current = true
+    const current = {
+      objects: JSON.parse(JSON.stringify(objects)),
+      connections: JSON.parse(JSON.stringify(connections)),
+      objIdSeq,
+      pipeIdSeq
+    }
+    undoStack.current.push(current)
+    const snapshot = redoStack.current.pop()
+    setObjects(snapshot.objects)
+    setConnections(snapshot.connections)
+    setObjIdSeq(snapshot.objIdSeq)
+    setPipeIdSeq(snapshot.pipeIdSeq)
+    setSelObjId(null)
+    setSelPipeId(null)
+    setTimeout(() => { isUndoing.current = false }, 0)
+  }, [objects, connections, objIdSeq, pipeIdSeq])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault()
+          undo()
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault()
+          redo()
+        }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [undo, redo])
+
   const selectAddType = useCallback((type) => {
     setAddType(type)
     setAddClick(true)
@@ -65,9 +146,10 @@ function App() {
       center: [lat, lng],
       params: {}
     }
+    pushHistory()
     setObjects(prev => [...prev, obj])
     return obj
-  }, [])
+  }, [pushHistory])
 
   const handlePipeClick = useCallback((o) => {
     const { pipeFrom, connections } = stateRef.current
@@ -110,11 +192,12 @@ function App() {
       od: pipeData.od,
       idm: pipeData.idm
     }
+    pushHistory()
     setConnections(prev => [...prev, newPipe])
     setModalPipeOpen(false)
     cancelPlacement()
-    setMode('edit') // Переключаем в режим редактирования
-  }, [cancelPlacement])
+    setMode('edit')
+  }, [cancelPlacement, pushHistory])
 
   const handleMapClick = useCallback((lat, lng) => {
     const { addClick, addType, pipeFrom } = stateRef.current
@@ -138,10 +221,11 @@ function App() {
       center: [lat, lng],
       params: {}
     }
+    pushHistory()
     setObjects(prev => [...prev, node])
     setPipeTo(node)
     setModalPipeOpen(true)
-  }, [])
+  }, [pushHistory])
 
   const handlePipeLineClick = useCallback((c, latlng) => {
     const { addClick, addType, pipeFrom, objIdSeq, mode } = stateRef.current
@@ -163,6 +247,7 @@ function App() {
         setModalPipeOpen(true)
       }
     } else if (mode === 'edit') {
+      pushHistory()
       setConnections(prev => prev.map(conn => {
         if (conn.id !== c.id) return conn
         let pts = conn.pts && conn.pts.length >= 2 ? [...conn.pts] : []
@@ -210,6 +295,7 @@ function App() {
   }, [])
 
   const removeWaypoint = useCallback((pipeId, wpIndex) => {
+    pushHistory()
     setConnections(prev => prev.map(c => {
       if (c.id !== pipeId) return c
       const newPts = c.pts ? [...c.pts] : []
@@ -218,37 +304,51 @@ function App() {
       }
       return { ...c, pts: newPts }
     }))
-  }, [])
+  }, [pushHistory])
+
+  const commitMoveObject = useCallback((id, lat, lng) => {
+    pushHistory()
+  }, [pushHistory])
+
+  const commitMoveWaypoint = useCallback((pipeId, wpIndex, lat, lng) => {
+    pushHistory()
+  }, [pushHistory])
 
   const updateObject = useCallback((id, updates) => {
+    pushHistory()
     setObjects(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o))
-  }, [])
+  }, [pushHistory])
 
   const updatePipe = useCallback((id, updates) => {
+    pushHistory()
     setConnections(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
-  }, [])
+  }, [pushHistory])
 
   const resetPipeGeom = useCallback((id) => {
+    pushHistory()
     setConnections(prev => prev.map(c => {
       if (c.id !== id) return c
       const f = stateRef.current.objects.find(o => o.id === c.from)
       const t = stateRef.current.objects.find(o => o.id === c.to)
       return { ...c, pts: f && t ? [f.center, t.center] : c.pts }
     }))
-  }, [])
+  }, [pushHistory])
 
   const deleteObject = useCallback((id) => {
+    pushHistory()
     setObjects(prev => prev.filter(o => o.id !== id))
     setConnections(prev => prev.filter(c => c.from !== id && c.to !== id))
     setSelObjId(prev => prev === id ? null : prev)
-  }, [])
+  }, [pushHistory])
 
   const deletePipe = useCallback((id) => {
+    pushHistory()
     setConnections(prev => prev.filter(c => c.id !== id))
     setSelPipeId(prev => prev === id ? null : prev)
-  }, [])
+  }, [pushHistory])
 
   const clearAll = useCallback(() => {
+    pushHistory()
     setObjects([])
     setConnections([])
     setObjIdSeq(0)
@@ -257,7 +357,7 @@ function App() {
     setSelPipeId(null)
     setMode('view')
     cancelPlacement()
-  }, [cancelPlacement])
+  }, [cancelPlacement, pushHistory])
 
   const toggleLayer = useCallback((layer) => {
     setShowLayers(prev => ({ ...prev, [layer]: !prev[layer] }))
@@ -305,6 +405,10 @@ function App() {
         showLayers={showLayers}
         toggleLayer={toggleLayer}
         clearAll={clearAll}
+        undo={undo}
+        redo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       <MapView
         objects={objects}
@@ -322,7 +426,9 @@ function App() {
         onObjectClick={handlePipeClick}
         onPipeLineClick={handlePipeLineClick}
         onMoveObject={moveObject}
+        onMoveObjectCommit={commitMoveObject}
         moveWaypoint={moveWaypoint}
+        moveWaypointCommit={commitMoveWaypoint}
         removeWaypoint={removeWaypoint}
       />
       <SidebarRight

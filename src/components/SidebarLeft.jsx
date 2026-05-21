@@ -29,7 +29,11 @@ function SidebarLeft({
   updateObject,
   showLayers,
   toggleLayer,
-  clearAll
+  clearAll,
+  undo,
+  redo,
+  canUndo,
+  canRedo
 }) {
   const selectedObject = objects.find(o => o.id === selObjId)
 
@@ -92,6 +96,15 @@ function SidebarLeft({
             onClick={() => setMode('edit')}
           >
             ✏️ Редактор
+          </button>
+        </div>
+
+        <div className="undo-redo-bar">
+          <button className="btn btn-ghost" onClick={undo} disabled={!canUndo} title="Отменить (Ctrl+Z)">
+            ↩️ Отменить
+          </button>
+          <button className="btn btn-ghost" onClick={redo} disabled={!canRedo} title="Повторить (Ctrl+Y)">
+            ↪️ Повторить
           </button>
         </div>
 
