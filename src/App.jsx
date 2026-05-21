@@ -509,11 +509,49 @@ function App() {
       }
       setHighlightedPathIds(ids)
       setGraphResult(result)
+      
+      // Создаём реальные трубопроводы для каждого пути
+      pushHistory()
+      const newConnections = []
+      for (const path of result.paths) {
+        const newId = pipeIdSeq + newConnections.length + 1
+        const pts = []
+        for (let i = 0; i < path.nodes.length - 1; i++) {
+          const from = objects.find(o => o.id === path.nodes[i])
+          const to = objects.find(o => o.id === path.nodes[i + 1])
+          if (from && to) {
+            pts.push(from.center)
+            pts.push(to.center)
+          }
+        }
+        if (pts.length >= 2) {
+          // Убираем дубликаты
+          const uniquePts = [pts[0]]
+          for (let i = 1; i < pts.length; i++) {
+            if (pts[i][0] !== pts[i-1][0] || pts[i][1] !== pts[i-1][1]) {
+              uniquePts.push(pts[i])
+            }
+          }
+          newConnections.push({
+            id: newId,
+            name: `Граф ${path.nodeNames.join(' → ')}`,
+            from: path.nodes[0],
+            to: path.nodes[path.nodes.length - 1],
+            pts: uniquePts,
+            od: 500,
+            idm: 480
+          })
+        }
+      }
+      if (newConnections.length > 0) {
+        setPipeIdSeq(pipeIdSeq + newConnections.length)
+        setConnections(prev => [...prev, ...newConnections])
+      }
     } else {
       setHighlightedPathIds(new Set())
       setGraphResult(null)
     }
-  }, [])
+  }, [pushHistory, pipeIdSeq, objects])
 
   return (
     <Routes>

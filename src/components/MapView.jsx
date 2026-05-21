@@ -3,6 +3,40 @@ import { MapContainer, TileLayer, Marker, Polyline, Popup, Tooltip, useMapEvents
 import L from 'leaflet'
 import { getTypeIconHtml } from './Icons'
 
+// Преобразует точки в плавную кривую Безье
+function createSmoothPolyline(pts, tension = 0.5) {
+  if (!pts || pts.length < 2) return pts || []
+  if (pts.length === 2) return pts
+
+  const result = [pts[0]]
+  
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = i === 0 ? pts[0] : pts[i - 1]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = i === pts.length - 2 ? pts[pts.length - 1] : pts[i + 2]
+
+    for (let t = 0; t < 1; t += 0.1) {
+      const nt = 1 - t
+      const mt = 1 - t
+      const tt = t
+
+      const cp1x = p1[0] + (p2[0] - p0[0]) * tension / 3
+      const cp1y = p1[1] + (p2[1] - p0[1]) * tension / 3
+      const cp2x = p2[0] - (p3[0] - p1[0]) * tension / 3
+      const cp2y = p2[1] - (p3[1] - p1[1]) * tension / 3
+
+      const x = nt * nt * nt * p1[0] + 3 * nt * nt * tt * cp1x + 3 * nt * tt * tt * cp2x + tt * tt * tt * p2[0]
+      const y = nt * nt * nt * p1[1] + 3 * nt * nt * tt * cp1y + 3 * nt * tt * tt * cp2y + tt * tt * tt * p2[1]
+      
+      result.push([x, y])
+    }
+  }
+  
+  result.push(pts[pts.length - 1])
+  return result
+}
+
 const TYPE_PARAMS = {
   wellpad: { key: 'prodRate', label: 'Уровень добычи', unit: 'т.н/год' },
   upsv: { key: 'capacity', label: 'Производительность', unit: 'т.н/год' },
@@ -108,7 +142,8 @@ const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRe
   const to = objects.find(o => o.id === connection.to)
   if (!from || !to) return null
 
-  const pts = connection.pts && connection.pts.length > 1 ? connection.pts : [from.center, to.center]
+  const rawPts = connection.pts && connection.pts.length >= 2 ? connection.pts : [from.center, to.center]
+  const pts = createSmoothPolyline(rawPts, 0.3)
   const isHighlighted = highlightedPathIds.has(connection.id)
 
   const eventHandlers = useMemo(() => ({
@@ -125,7 +160,9 @@ const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRe
       pathOptions={{
         color: isHighlighted ? '#059669' : '#3b82f6',
         weight: isHighlighted ? 6 : 4,
-        opacity: isHighlighted ? 1 : 0.85
+        opacity: isHighlighted ? 1 : 0.85,
+        lineCap: 'round',
+        lineJoin: 'round'
       }}
       eventHandlers={eventHandlers}
     >

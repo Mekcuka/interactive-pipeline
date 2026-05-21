@@ -17,7 +17,8 @@ function CalcMenu({ onOpenGraphCalc, hasGraphResult }) {
         padding: '0.5rem',
         display: 'flex',
         gap: '0.4rem',
-        border: '1px solid #e2e8f0'
+        border: '1px solid #e2e8f0',
+        whiteSpace: 'nowrap'
       }}>
         <span style={{
           padding: '0.4rem 0.7rem',
@@ -46,7 +47,8 @@ function CalcMenu({ onOpenGraphCalc, hasGraphResult }) {
             alignItems: 'center',
             gap: '0.35rem',
             transition: 'all 0.15s',
-            whiteSpace: 'nowrap'
+            minWidth: '120px',
+            justifyContent: 'center'
           }}
           onMouseEnter={e => e.target.style.transform = 'translateY(-1px)'}
           onMouseLeave={e => e.target.style.transform = 'translateY(0)'}
