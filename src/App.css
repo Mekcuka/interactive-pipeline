@@ -78,6 +78,22 @@
   background: #94a3b8;
 }
 
+/* Подсказка магнитной привязки */
+.snap-tooltip {
+  background: #10b981 !important;
+  color: white !important;
+  border: none !important;
+}
+
+/* Тултип при hover на трубе */
+.pipe-label.leaflet-tooltip-top,
+.pipe-label.leaflet-tooltip-bottom {
+  font-size: 0.7rem !important;
+  background: rgba(255,255,255,0.95) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
 .sidebar-left {
   width: 300px;
   background: white;

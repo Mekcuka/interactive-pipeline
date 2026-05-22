@@ -103,29 +103,53 @@ function DraggableMarker({ object, selected, mode, addClick, addType, deleteMode
   )
 }
 
-const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRef, highlightedPathIds }) {
+const PipeLine = React.memo(function PipeLine({ 
+  connection, 
+  objects,
+  callbacksRef, 
+  highlightedPathIds,
+  hoveredPipeId,
+  setHoveredPipeId,
+  enableHoverHighlight,
+  enableEndpointDrag,
+  mode
+}) {
   const from = objects.find(o => o.id === connection.from)
   const to = objects.find(o => o.id === connection.to)
   if (!from || !to) return null
 
   const pts = connection.pts && connection.pts.length > 1 ? connection.pts : [from.center, to.center]
   const isHighlighted = highlightedPathIds.has(connection.id)
+  const isHovered = hoveredPipeId === connection.id
 
   const eventHandlers = useMemo(() => ({
     click: (e) => {
       e.originalEvent.stopPropagation()
       callbacksRef.current.onPipeLineClick(connection, e.latlng)
+    },
+    mouseover: () => {
+      if (enableHoverHighlight) {
+        callbacksRef.current.setHoveredPipeId(connection.id)
+      }
+    },
+    mouseout: () => {
+      if (enableHoverHighlight) {
+        callbacksRef.current.setHoveredPipeId(null)
+      }
     }
-  }), [connection.id])
+  }), [connection.id, enableHoverHighlight])
+
+  const baseWeight = isHighlighted ? 6 : 4
+  const hoverWeight = isHovered ? 8 : baseWeight
 
   return (
     <Polyline
       key={connection.id}
       positions={pts}
       pathOptions={{
-        color: isHighlighted ? '#059669' : '#3b82f6',
-        weight: isHighlighted ? 6 : 4,
-        opacity: isHighlighted ? 1 : 0.85
+        color: isHighlighted ? '#059669' : (isHovered ? '#8b5cf6' : '#3b82f6'),
+        weight: hoverWeight,
+        opacity: isHighlighted ? 1 : (isHovered ? 1 : 0.85)
       }}
       eventHandlers={eventHandlers}
     >
@@ -141,7 +165,16 @@ const PipeLine = React.memo(function PipeLine({ connection, objects, callbacksRe
   )
 })
 
-const WaypointMarker = React.memo(function WaypointMarker({ connection, wpIndex, position, callbacksRef }) {
+const WaypointMarker = React.memo(function WaypointMarker({ 
+  connection, 
+  wpIndex, 
+  position, 
+  callbacksRef,
+  enableMultiplePointEdit,
+  enableEndpointDrag,
+  mode,
+  isEndpoint
+}) {
   const map = useMap()
 
   const eventHandlers = useMemo(() => ({
@@ -162,21 +195,25 @@ const WaypointMarker = React.memo(function WaypointMarker({ connection, wpIndex,
     }
   }), [connection.id, wpIndex, map])
 
+  const isDraggable = mode === 'edit' && (enableMultiplePointEdit || isEndpoint)
+
   return (
     <Marker
       position={position}
-      draggable={true}
+      draggable={isDraggable}
       eventHandlers={eventHandlers}
       zIndexOffset={1000}
       icon={L.divIcon({
-        html: '<div style="width:12px;height:12px;background:#2563eb;border:2px solid white;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:move;"></div>',
+        html: isEndpoint 
+          ? '<div style="width:16px;height:16px;background:#10b981;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:move;"></div>'
+          : '<div style="width:12px;height:12px;background:#2563eb;border:2px solid white;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);cursor:move;"></div>',
         className: '',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
+        iconSize: isEndpoint ? [16, 16] : [12, 12],
+        iconAnchor: isEndpoint ? [8, 8] : [6, 6]
       })}
     >
       <Tooltip permanent direction="top" offset={[0, -10]} className="pipe-label">
-        Точка {wpIndex + 1}
+        {isEndpoint ? (wpIndex === 0 ? 'Начало' : 'Конец') : `Точка ${wpIndex + 1}`}
       </Tooltip>
     </Marker>
   )
@@ -215,9 +252,17 @@ function MapView({
   moveWaypoint,
   moveWaypointCommit,
   removeWaypoint,
-  highlightedPathIds = new Set()
+  highlightedPathIds = new Set(),
+  enablePreview = true,
+  enableSnap = true,
+  enableEndpointDrag = true,
+  enableMultiplePointEdit = true,
+  enableHoverHighlight = true
 }) {
   const [mousePos, setMousePos] = useState(null)
+  const [hoveredPipeId, setHoveredPipeId] = useState(null)
+  const [hoveredPointIndex, setHoveredPointIndex] = useState(null)
+  const [snappedTarget, setSnappedTarget] = useState(null)
   const rafRef = useRef(null)
 
   const callbacksRef = useRef({
@@ -231,7 +276,10 @@ function MapView({
     moveWaypoint,
     moveWaypointCommit,
     removeWaypoint,
-    onMouseMove: null
+    onMouseMove: null,
+    setSnappedTarget: null,
+    setHoveredPipeId: null,
+    setHoveredPointIndex: null
   })
 
   callbacksRef.current.onMapClick = onMapClick
@@ -245,15 +293,62 @@ function MapView({
   callbacksRef.current.moveWaypointCommit = moveWaypointCommit
   callbacksRef.current.removeWaypoint = removeWaypoint
 
+  // Магнитная привязка (snap-to-target)
+  const findSnapTarget = useCallback((lat, lng, snapRadius = 0.0002) => {
+    if (!enableSnap) return null
+    
+    const snapRadiusDeg = snapRadius
+    let bestTarget = null
+    let bestDist = snapRadiusDeg * snapRadiusDeg
+
+    // Проверка объектов
+    for (const o of objects) {
+      const d = (o.center[0] - lat) ** 2 + (o.center[1] - lng) ** 2
+      if (d < bestDist) {
+        bestDist = d
+        bestTarget = { type: 'object', id: o.id, center: o.center }
+      }
+    }
+
+    // Проверка точек труб (в режиме редактирования)
+    if (mode === 'edit') {
+      for (const c of connections) {
+        if (!c.pts || c.pts.length < 2) continue
+        for (let i = 0; i < c.pts.length; i++) {
+          const p = c.pts[i]
+          const d = (p[0] - lat) ** 2 + (p[1] - lng) ** 2
+          if (d < bestDist) {
+            bestDist = d
+            bestTarget = { type: 'pipePoint', pipeId: c.id, index: i, center: p }
+          }
+        }
+      }
+    }
+
+    return bestTarget
+  }, [objects, connections, mode, enableSnap])
+
   const handleMouseMove = useCallback((e) => {
     if (rafRef.current) return
     rafRef.current = requestAnimationFrame(() => {
-      setMousePos([e.latlng.lat, e.latlng.lng])
+      const lat = e.latlng.lat
+      const lng = e.latlng.lng
+      
+      // Магнитная привязка
+      if (enableSnap && (addClick || (mode === 'edit' && hoveredPipeId))) {
+        const target = findSnapTarget(lat, lng)
+        setSnappedTarget(target)
+      } else {
+        setSnappedTarget(null)
+      }
+      
+      setMousePos(target ? target.center : [lat, lng])
       rafRef.current = null
     })
-  }, [])
+  }, [addClick, mode, hoveredPipeId, enableSnap, findSnapTarget])
 
   callbacksRef.current.onMouseMove = handleMouseMove
+  callbacksRef.current.setSnappedTarget = setSnappedTarget
 
   const markers = useMemo(() => {
     return objects.map((o) => (
@@ -278,25 +373,63 @@ function MapView({
         objects={objects}
         callbacksRef={callbacksRef}
         highlightedPathIds={highlightedPathIds}
+        hoveredPipeId={hoveredPipeId}
+        setHoveredPipeId={setHoveredPipeId}
+        enableHoverHighlight={enableHoverHighlight}
+        enableEndpointDrag={enableEndpointDrag}
+        mode={mode}
       />
     ))
-  }, [connections, objects, highlightedPathIds])
+  }, [connections, objects, highlightedPathIds, hoveredPipeId, enableHoverHighlight, enableEndpointDrag, mode])
 
   const waypoints = useMemo(() => {
     if (mode !== 'edit') return null
     return connections.flatMap((c) => {
       if (!c.pts || c.pts.length <= 2) return []
-      return c.pts.slice(1, -1).map((wp, i) => (
+      // Добавляем точки концов трубы (начало и конец)
+      const endpoints = enableEndpointDrag ? [
         <WaypointMarker
-          key={`wp-${c.id}-${i}`}
+          key={`ep-start-${c.id}`}
           connection={c}
-          wpIndex={i + 1}
-          position={wp}
+          wpIndex={0}
+          position={c.pts[0]}
           callbacksRef={callbacksRef}
+          enableMultiplePointEdit={enableMultiplePointEdit}
+          enableEndpointDrag={enableEndpointDrag}
+          mode={mode}
+          isEndpoint={true}
+        />,
+        <WaypointMarker
+          key={`ep-end-${c.id}`}
+          connection={c}
+          wpIndex={c.pts.length - 1}
+          position={c.pts[c.pts.length - 1]}
+          callbacksRef={callbacksRef}
+          enableMultiplePointEdit={enableMultiplePointEdit}
+          enableEndpointDrag={enableEndpointDrag}
+          mode={mode}
+          isEndpoint={true}
         />
-      ))
+      ] : []
+      
+      return [
+        ...endpoints,
+        ...c.pts.slice(1, -1).map((wp, i) => (
+          <WaypointMarker
+            key={`wp-${c.id}-${i}`}
+            connection={c}
+            wpIndex={i + 1}
+            position={wp}
+            callbacksRef={callbacksRef}
+            enableMultiplePointEdit={enableMultiplePointEdit}
+            enableEndpointDrag={enableEndpointDrag}
+            mode={mode}
+            isEndpoint={false}
+          />
+        ))
+      ]
     })
-  }, [mode, connections])
+  }, [mode, connections, enableMultiplePointEdit, enableEndpointDrag])
 
   const previewPts = pipeFrom && mousePos
     ? [pipeFrom.center, ...pipeWaypoints, mousePos]
@@ -335,20 +468,41 @@ function MapView({
           <>
             <Polyline
               positions={previewPts}
-              pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.6, dashArray: '8,6' }}
+              pathOptions={{ 
+                color: snappedTarget ? '#10b981' : '#3b82f6', 
+                weight: 4, 
+                opacity: 0.7, 
+                dashArray: '8,6' 
+              }}
               interactive={false}
             />
             <Marker
               position={mousePos}
               icon={L.divIcon({
-                html: '<div class="preview-pipe-end">🔧</div>',
+                html: snappedTarget 
+                  ? '<div style="width:24px;height:24px;background:#10b981;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>'
+                  : '<div style="width:20px;height:20px;background:#3b82f6;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>',
                 className: '',
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
               })}
               interactive={false}
               zIndexOffset={9998}
             />
+            {snappedTarget && enablePreview && (
+              <Tooltip 
+                permanent 
+                direction="bottom" 
+                offset={[0, 20]} 
+                className="snap-tooltip"
+              >
+                <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                  {snappedTarget.type === 'object' 
+                    ? `Привязка: ${objects.find(o => o.id === snappedTarget.id)?.name || 'Объект'}`
+                    : `Привязка: Точка трубы`}
+                </span>
+              </Tooltip>
+            )}
           </>
         )}
       </MapContainer>
@@ -362,6 +516,23 @@ function MapView({
           ? '👁️ Просмотр'
           : '✏️ Редактирование'}
       </div>
+      {enablePreview && hoveredPipeId && (
+        <div style={{
+          position: 'absolute',
+          bottom: '60px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(255,255,255,0.95)',
+          padding: '0.4rem 0.8rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          fontSize: '0.75rem',
+          zIndex: 1000,
+          border: '1px solid #e2e8f0'
+        }}>
+          🔧 {connections.find(c => c.id === hoveredPipeId)?.name || 'Трубопровод'}
+        </div>
+      )}
     </div>
   )
 }
